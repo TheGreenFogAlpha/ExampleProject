@@ -2,16 +2,14 @@ package com.tenderflow.controller;
 
 import com.tenderflow.model.Bid;
 import com.tenderflow.model.Tender;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
-import org.eclipse.microprofile.openapi.annotations.media.Content;
-import org.eclipse.microprofile.openapi.annotations.media.Schema;
-import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
-import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
+import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
@@ -31,16 +29,12 @@ public class BidResource {
     Emitter<Bid> bidEmitter;
 
     @POST
+    @RolesAllowed("SUPPLIER")
     @Transactional
-    @Operation(summary = "Invia offerta per una gara", description = "Valida stato gara, data di chiusura e budget massimo, poi salva l'offerta ed emette un evento Kafka.")
-    @APIResponses({
-            @APIResponse(responseCode = "201", description = "Offerta inviata con successo",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = Bid.class))),
-            @APIResponse(responseCode = "400", description = "Offerta non valida (gara chiusa, scaduta o importo fuori budget)"),
-            @APIResponse(responseCode = "404", description = "Gara non trovata")
-    })
+    @SecurityRequirement(name = "jwtAuth")
+    @Operation(summary = "Invia offerta (Solo SUPPLIER)", description = "Richiede il ruolo SUPPLIER per sottomessa un'offerta.")
     public Response createBid(
-            @Parameter(description = "ID della gara a cui inviare l'offerta") @PathParam("tenderId") Long tenderId,
+            @Parameter(description = "ID della gara") @PathParam("tenderId") Long tenderId,
             Bid bid) {
 
         Tender tender = Tender.findById(tenderId);
@@ -84,13 +78,10 @@ public class BidResource {
     }
 
     @GET
-    @Operation(summary = "Recupera offerte di una gara", description = "Restituisce l'elenco di tutte le offerte sottomesse per la gara specificata.")
-    @APIResponses({
-            @APIResponse(responseCode = "200", description = "Lista offerte restituita con successo",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = Bid.class)))
-    })
-    public List<Bid> getBidsForTender(
-            @Parameter(description = "ID della gara") @PathParam("tenderId") Long tenderId) {
+    @RolesAllowed({"BUYER", "SUPPLIER"})
+    @SecurityRequirement(name = "jwtAuth")
+    @Operation(summary = "Recupera offerte di una gara", description = "Accessibile da utenti autenticati come BUYER o SUPPLIER.")
+    public List<Bid> getBidsForTender(@PathParam("tenderId") Long tenderId) {
         return Bid.list("tender.id", tenderId);
     }
 }

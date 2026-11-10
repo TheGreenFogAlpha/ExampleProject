@@ -3,16 +3,21 @@ package com.tenderflow.controller;
 import com.tenderflow.model.Bid;
 import com.tenderflow.model.Tender;
 import io.quarkus.panache.common.Parameters;
+import jakarta.annotation.security.PermitAll;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.enums.SecuritySchemeType;
 import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
+import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement;
+import org.eclipse.microprofile.openapi.annotations.security.SecurityScheme;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
@@ -24,20 +29,20 @@ import java.util.List;
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 @Tag(name = "Tender Management", description = "Operazioni di gestione, ricerca e aggiudicazione delle gare d'appalto")
+@SecurityScheme(securitySchemeName = "jwtAuth", type = SecuritySchemeType.HTTP, scheme = "bearer", bearerFormat = "JWT")
 public class TenderResource {
 
     @Channel("tender-events-out")
     Emitter<Tender> tenderEmitter;
 
     @GET
-    @Operation(summary = "Lista gare con filtri", description = "Recupera la lista delle gare con possibilità di filtrare per stato, range di budget e titolo.")
-    @APIResponse(responseCode = "200", description = "Lista restituita con successo",
-            content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = Tender.class)))
+    @PermitAll
+    @Operation(summary = "Lista gare con filtri", description = "Endpoint pubblico per la consultazione delle gare d'appalto.")
     public List<Tender> getTenders(
-            @Parameter(description = "Stato della gara (es. OPEN, CLOSED)") @QueryParam("status") String status,
-            @Parameter(description = "Budget minimo") @QueryParam("minBudget") BigDecimal minBudget,
-            @Parameter(description = "Budget massimo") @QueryParam("maxBudget") BigDecimal maxBudget,
-            @Parameter(description = "Parola chiave nel titolo") @QueryParam("title") String title) {
+            @QueryParam("status") String status,
+            @QueryParam("minBudget") BigDecimal minBudget,
+            @QueryParam("maxBudget") BigDecimal maxBudget,
+            @QueryParam("title") String title) {
 
         StringBuilder query = new StringBuilder("1=1");
         Parameters params = new Parameters();
@@ -63,12 +68,14 @@ public class TenderResource {
     }
 
     @POST
+    @RolesAllowed("BUYER")
     @Transactional
-    @Operation(summary = "Crea una nuova gara", description = "Persiste una nuova gara ed emette un evento Kafka sul topic tender-events.")
+    @SecurityRequirement(name = "jwtAuth")
+    @Operation(summary = "Crea una nuova gara (Solo BUYER)", description = "Richiede ruolo BUYER.")
     @APIResponses({
-            @APIResponse(responseCode = "201", description = "Gara creata con successo",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = Tender.class))),
-            @APIResponse(responseCode = "400", description = "Payload della richiesta non valido")
+            @APIResponse(responseCode = "201", description = "Gara creata con successo"),
+            @APIResponse(responseCode = "401", description = "Non autenticato"),
+            @APIResponse(responseCode = "403", description = "Ruolo insufficiente (richiesto BUYER)")
     })
     public Response create(Tender tender) {
         if (tender.id != null) {
@@ -81,15 +88,16 @@ public class TenderResource {
 
     @PUT
     @Path("/{id}/close")
+    @RolesAllowed("BUYER")
     @Transactional
-    @Operation(summary = "Chiudi gara e calcola vincitore", description = "Imposta lo stato a CLOSED, pubblica l'evento su Kafka e identifica l'offerta piu' bassa.")
+    @SecurityRequirement(name = "jwtAuth")
+    @Operation(summary = "Chiudi gara ed aggiudica (Solo BUYER)", description = "Richiede ruolo BUYER.")
     @APIResponses({
-            @APIResponse(responseCode = "200", description = "Gara chiusa ed eventualmente aggiudicata",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = TenderAwardResult.class))),
-            @APIResponse(responseCode = "404", description = "Gara non trovata"),
-            @APIResponse(responseCode = "400", description = "Gara gia' chiusa")
+            @APIResponse(responseCode = "200", description = "Gara chiusa ed aggiudicata"),
+            @APIResponse(responseCode = "401", description = "Non autenticato"),
+            @APIResponse(responseCode = "403", description = "Ruolo insufficiente (richiesto BUYER)")
     })
-    public Response closeTender(@Parameter(description = "ID della gara da chiudere") @PathParam("id") Long id) {
+    public Response closeTender(@Parameter(description = "ID della gara") @PathParam("id") Long id) {
         Tender tender = Tender.findById(id);
         if (tender == null) {
             return Response.status(Response.Status.NOT_FOUND)
