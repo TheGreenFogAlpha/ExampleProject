@@ -1,5 +1,6 @@
 package com.tenderflow.controller;
 
+import com.tenderflow.model.Bid;
 import com.tenderflow.model.Tender;
 import io.quarkus.panache.common.Parameters;
 import jakarta.transaction.Transactional;
@@ -63,4 +64,42 @@ public class TenderResource {
 
         return Response.status(Response.Status.CREATED).entity(tender).build();
     }
+
+    @PUT
+    @Path("/{id}/close")
+    @Transactional
+    public Response closeTender(@PathParam("id") Long id) {
+        Tender tender = Tender.findById(id);
+        if (tender == null) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity("{\"error\": \"Gara non trovata\"}")
+                    .build();
+        }
+
+        if ("CLOSED".equalsIgnoreCase(tender.status)) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("{\"error\": \"La gara e' gia' stata chiusa\"}")
+                    .build();
+        }
+
+        //Chiusura gara
+        tender.status = "CLOSED";
+
+        // Notifica cambio stato via Kafka
+        tenderEmitter.send(tender);
+
+        // calcolo offerta vincente (importo piu' basso)
+        Bid winningBid = Bid.find("tender.id = ?1 order by amount asc", id).firstResult();
+
+        if (winningBid == null) {
+            return Response.ok()
+                    .entity("{\"message\": \"Gara chiusa. Nessuna offerta pervenuta.\", \"tenderId\": " + id + "}")
+                    .build();
+        }
+
+        return Response.ok(new TenderAwardResult(tender, winningBid)).build();
+    }
+
+    // DTO per il risultato dell'aggiudicazione
+    public record TenderAwardResult(Tender tender, Bid winningBid) {}
 }
