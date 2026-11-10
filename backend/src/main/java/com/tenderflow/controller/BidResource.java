@@ -6,6 +6,13 @@ import jakarta.transaction.Transactional;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
+import org.eclipse.microprofile.openapi.annotations.media.Content;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
 
@@ -17,6 +24,7 @@ import java.util.List;
 @Path("/api/tenders/{tenderId}/bids")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
+@Tag(name = "Bid Management", description = "Sottomissione e consultazione offerte per gara")
 public class BidResource {
 
     @Channel("bid-events-out")
@@ -24,7 +32,17 @@ public class BidResource {
 
     @POST
     @Transactional
-    public Response createBid(@PathParam("tenderId") Long tenderId, Bid bid) {
+    @Operation(summary = "Invia offerta per una gara", description = "Valida stato gara, data di chiusura e budget massimo, poi salva l'offerta ed emette un evento Kafka.")
+    @APIResponses({
+            @APIResponse(responseCode = "201", description = "Offerta inviata con successo",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = Bid.class))),
+            @APIResponse(responseCode = "400", description = "Offerta non valida (gara chiusa, scaduta o importo fuori budget)"),
+            @APIResponse(responseCode = "404", description = "Gara non trovata")
+    })
+    public Response createBid(
+            @Parameter(description = "ID della gara a cui inviare l'offerta") @PathParam("tenderId") Long tenderId,
+            Bid bid) {
+
         Tender tender = Tender.findById(tenderId);
         if (tender == null) {
             return Response.status(Response.Status.NOT_FOUND)
@@ -66,7 +84,13 @@ public class BidResource {
     }
 
     @GET
-    public List<Bid> getBidsForTender(@PathParam("tenderId") Long tenderId) {
+    @Operation(summary = "Recupera offerte di una gara", description = "Restituisce l'elenco di tutte le offerte sottomesse per la gara specificata.")
+    @APIResponses({
+            @APIResponse(responseCode = "200", description = "Lista offerte restituita con successo",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = Bid.class)))
+    })
+    public List<Bid> getBidsForTender(
+            @Parameter(description = "ID della gara") @PathParam("tenderId") Long tenderId) {
         return Bid.list("tender.id", tenderId);
     }
 }
