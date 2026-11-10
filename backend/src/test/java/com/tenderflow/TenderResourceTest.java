@@ -54,6 +54,22 @@ public class TenderResourceTest {
     }
 
     @Test
+    public void testGlobalExceptionMapperErrorFormat() {
+        // Chiusura di una gara inesistente (ID 999999) -> Verifica che la risposta segua la struttura ErrorResponse
+        given()
+                .auth().oauth2(buyerToken)
+                .contentType(ContentType.JSON)
+                .when()
+                .put("/api/tenders/999999/close")
+                .then()
+                .statusCode(404)
+                .body("status", is(404))
+                .body("error", is("Not Found"))
+                .body("message", is("Gara non trovata"))
+                .body("timestamp", notNullValue());
+    }
+
+    @Test
     public void testRoleAccessAndCompleteLifecycle() {
         String tenderJson = """
             {

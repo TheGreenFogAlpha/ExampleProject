@@ -1,5 +1,6 @@
 package com.tenderflow.controller;
 
+import com.tenderflow.exception.BusinessException;
 import com.tenderflow.model.Bid;
 import com.tenderflow.model.Tender;
 import io.quarkus.panache.common.Page;
@@ -41,33 +42,23 @@ public class BidResource {
 
         Tender tender = Tender.findById(tenderId);
         if (tender == null) {
-            return Response.status(Response.Status.NOT_FOUND)
-                    .entity("{\"error\": \"Gara non trovata\"}")
-                    .build();
+            throw new BusinessException("Gara non trovata", Response.Status.NOT_FOUND);
         }
 
         if (!"OPEN".equalsIgnoreCase(tender.status)) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("{\"error\": \"Impossibile inviare offerte per una gara non aperta\"}")
-                    .build();
+            throw new BusinessException("Impossibile inviare offerte per una gara non aperta");
         }
 
         if (tender.closingDate != null && LocalDate.now().isAfter(tender.closingDate)) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("{\"error\": \"Il termine per la presentazione delle offerte per questa gara e' scaduto\"}")
-                    .build();
+            throw new BusinessException("Il termine per la presentazione delle offerte per questa gara e' scaduto");
         }
 
         if (bid.amount == null || bid.amount.compareTo(BigDecimal.ZERO) <= 0) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("{\"error\": \"L'importo dell'offerta deve essere maggiore di zero\"}")
-                    .build();
+            throw new BusinessException("L'importo dell'offerta deve essere maggiore di zero");
         }
 
         if (tender.budget != null && bid.amount.compareTo(tender.budget) > 0) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("{\"error\": \"L'importo dell'offerta supera il budget massimo della gara\"}")
-                    .build();
+            throw new BusinessException("L'importo dell'offerta supera il budget massimo della gara");
         }
 
         bid.tender = tender;
