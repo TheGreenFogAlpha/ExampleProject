@@ -2,7 +2,9 @@ package com.tenderflow.controller;
 
 import com.tenderflow.model.Bid;
 import com.tenderflow.model.Tender;
+import io.quarkus.panache.common.Page;
 import io.quarkus.panache.common.Parameters;
+import io.quarkus.panache.common.Sort;
 import jakarta.annotation.security.PermitAll;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.transaction.Transactional;
@@ -37,12 +39,16 @@ public class TenderResource {
 
     @GET
     @PermitAll
-    @Operation(summary = "Lista gare con filtri", description = "Endpoint pubblico per la consultazione delle gare d'appalto.")
+    @Operation(summary = "Lista gare con filtri, paginazione e ordinamento", description = "Endpoint pubblico per la consultazione delle gare d'appalto.")
     public List<Tender> getTenders(
-            @QueryParam("status") String status,
-            @QueryParam("minBudget") BigDecimal minBudget,
-            @QueryParam("maxBudget") BigDecimal maxBudget,
-            @QueryParam("title") String title) {
+            @Parameter(description = "Stato della gara (es. OPEN, CLOSED)") @QueryParam("status") String status,
+            @Parameter(description = "Budget minimo") @QueryParam("minBudget") BigDecimal minBudget,
+            @Parameter(description = "Budget massimo") @QueryParam("maxBudget") BigDecimal maxBudget,
+            @Parameter(description = "Parola chiave nel titolo") @QueryParam("title") String title,
+            @Parameter(description = "Numero di pagina (0-indexed)") @QueryParam("page") @DefaultValue("0") int page,
+            @Parameter(description = "Elementi per pagina") @QueryParam("size") @DefaultValue("10") int size,
+            @Parameter(description = "Campo per l'ordinamento (es. id, budget, title, closingDate)") @QueryParam("sortBy") @DefaultValue("id") String sortBy,
+            @Parameter(description = "Direzione dell'ordinamento (asc o desc)") @QueryParam("sortOrder") @DefaultValue("asc") String sortOrder) {
 
         StringBuilder query = new StringBuilder("1=1");
         Parameters params = new Parameters();
@@ -64,7 +70,11 @@ public class TenderResource {
             params.and("title", "%" + title.toLowerCase() + "%");
         }
 
-        return Tender.list(query.toString(), params);
+        Sort sort = "desc".equalsIgnoreCase(sortOrder) ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+
+        return Tender.find(query.toString(), sort, params)
+                .page(Page.of(page, size))
+                .list();
     }
 
     @POST
