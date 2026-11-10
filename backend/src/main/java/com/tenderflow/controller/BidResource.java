@@ -2,6 +2,8 @@ package com.tenderflow.controller;
 
 import com.tenderflow.model.Bid;
 import com.tenderflow.model.Tender;
+import io.quarkus.panache.common.Page;
+import io.quarkus.panache.common.Sort;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.*;
@@ -32,7 +34,7 @@ public class BidResource {
     @RolesAllowed("SUPPLIER")
     @Transactional
     @SecurityRequirement(name = "jwtAuth")
-    @Operation(summary = "Invia offerta (Solo SUPPLIER)", description = "Richiede il ruolo SUPPLIER per sottomessa un'offerta.")
+    @Operation(summary = "Invia offerta (Solo SUPPLIER)", description = "Richiede il ruolo SUPPLIER per sottomettere un'offerta.")
     public Response createBid(
             @Parameter(description = "ID della gara") @PathParam("tenderId") Long tenderId,
             Bid bid) {
@@ -80,8 +82,18 @@ public class BidResource {
     @GET
     @RolesAllowed({"BUYER", "SUPPLIER"})
     @SecurityRequirement(name = "jwtAuth")
-    @Operation(summary = "Recupera offerte di una gara", description = "Accessibile da utenti autenticati come BUYER o SUPPLIER.")
-    public List<Bid> getBidsForTender(@PathParam("tenderId") Long tenderId) {
-        return Bid.list("tender.id", tenderId);
+    @Operation(summary = "Recupera offerte di una gara", description = "Accessibile da utenti autenticati come BUYER o SUPPLIER con paginazione e ordinamento.")
+    public List<Bid> getBidsForTender(
+            @Parameter(description = "ID della gara") @PathParam("tenderId") Long tenderId,
+            @Parameter(description = "Numero di pagina (0-indexed)") @QueryParam("page") @DefaultValue("0") int page,
+            @Parameter(description = "Elementi per pagina") @QueryParam("size") @DefaultValue("10") int size,
+            @Parameter(description = "Campo di ordinamento (es. amount, submissionDate)") @QueryParam("sortBy") @DefaultValue("amount") String sortBy,
+            @Parameter(description = "Direzione dell'ordinamento (asc o desc)") @QueryParam("sortOrder") @DefaultValue("asc") String sortOrder) {
+
+        Sort sort = "desc".equalsIgnoreCase(sortOrder) ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+
+        return Bid.find("tender.id = ?1", sort, tenderId)
+                .page(Page.of(page, size))
+                .list();
     }
 }
