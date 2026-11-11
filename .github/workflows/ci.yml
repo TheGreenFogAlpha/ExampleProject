@@ -22,9 +22,17 @@ jobs:
           java-version: '17'
           cache: 'maven'
 
+      - name: Start Infrastructure Services (PostgreSQL & Kafka)
+        run: docker compose up -d postgres kafka
+
       - name: Build and run tests
         working-directory: ./backend
-        run: mvn clean verify
+        run: |
+          mvn clean verify \
+            -Dquarkus.datasource.jdbc.url=jdbc:postgresql://localhost:5432/tenderflow \
+            -Dquarkus.datasource.username=tenderflow_user \
+            -Dquarkus.datasource.password=tenderflow_password \
+            -Dkafka.bootstrap.servers=localhost:29092
 
       - name: Build Docker Image (Dry-Run)
         run: docker compose build backend
