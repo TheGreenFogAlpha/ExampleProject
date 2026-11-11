@@ -23,7 +23,7 @@ jobs:
           cache: 'maven'
 
       - name: Start Infrastructure Services (PostgreSQL & Kafka)
-        run: docker compose up -d postgres kafka
+        run: docker compose up -d --wait postgres kafka
 
       - name: Build and run tests
         working-directory: ./backend
