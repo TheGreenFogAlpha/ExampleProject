@@ -1,0 +1,36 @@
+<div class="card border-0 shadow-sm rounded-3 mb-4">
+  <div class="card-body p-4">
+    <h4 class="fw-bold text-dark mb-3">Nuova Gara d'Appalto</h4>
+    
+    <form (ngSubmit)="onSubmit()" #tenderForm="ngForm">
+      <div class="mb-3">
+        <label for="title" class="form-label small fw-semibold text-secondary">Titolo Gara *</label>
+        <input type="text" id="title" class="form-control" [(ngModel)]="newTender.title" name="title" placeholder="Es. Fornitura Server Cloud" required />
+      </div>
+
+      <div class="mb-3">
+        <label for="description" class="form-label small fw-semibold text-secondary">Descrizione *</label>
+        <textarea id="description" class="form-control" rows="3" [(ngModel)]="newTender.description" name="description" placeholder="Dettagli e requisiti della gara..." required></textarea>
+      </div>
+
+      <div class="row g-3 mb-4">
+        <div class="col-md-6">
+          <label for="budget" class="form-label small fw-semibold text-secondary">Budget (€) *</label>
+          <input type="number" id="budget" class="form-control" [(ngModel)]="newTender.budget" name="budget" placeholder="50000" required />
+        </div>
+        <div class="col-md-6">
+          <label for="status" class="form-label small fw-semibold text-secondary">Stato Iniziale</label>
+          <select id="status" class="form-select" [(ngModel)]="newTender.status" name="status">
+            <option value="DRAFT">DRAFT</option>
+            <option value="OPEN">OPEN</option>
+            <option value="CLOSED">CLOSED</option>
+          </select>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-success fw-semibold px-4" [disabled]="!tenderForm.form.valid">
+        Crea Gara
+      </button>
+    </form>
+  </div>
+</div>

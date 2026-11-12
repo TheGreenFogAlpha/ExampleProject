@@ -1,0 +1,58 @@
+<div class="card border-0 shadow-sm rounded-3">
+  <div class="card-body p-4">
+    <div class="d-flex justify-content-between align-items-start mb-3">
+      <div>
+        <h4 class="fw-bold text-dark mb-1">Elenco Gare d'Appalto</h4>
+        <p class="text-secondary small mb-0">Monitoraggio in tempo reale dal backend Quarkus</p>
+      </div>
+      <button class="btn btn-primary fw-semibold px-3 py-2" (click)="loadTenders()">
+        Aggiorna Lista
+      </button>
+    </div>
+
+    <!-- Caricamento -->
+    <div *ngIf="isLoading" class="p-3 bg-light rounded-3 text-secondary small">
+      Caricamento gare in corso...
+    </div>
+
+    <!-- Lista vuota -->
+    <div *ngIf="!isLoading && tenders.length === 0" class="p-3 bg-light rounded-3 text-secondary small">
+      Nessuna gara d'appalto disponibile.
+    </div>
+
+    <!-- Tabella Formattata -->
+    <div *ngIf="!isLoading && tenders.length > 0" class="table-responsive mt-3">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th scope="col" style="width: 70px;">ID</th>
+            <th scope="col">Titolo Gara</th>
+            <th scope="col">Descrizione</th>
+            <th scope="col" class="text-end">Budget (€)</th>
+            <th scope="col" class="text-center" style="width: 110px;">Stato</th>
+          </tr>
+        </thead>
+        <tbody class="small">
+          <tr *ngFor="let tender of tenders">
+            <td class="fw-bold text-muted">#{{ tender.id }}</td>
+            <td class="fw-semibold text-dark">{{ tender.title }}</td>
+            <td class="text-secondary">{{ tender.description }}</td>
+            <td class="text-end fw-bold text-dark">
+              {{ tender.budget | currency:'EUR':'symbol':'1.2-2' }}
+            </td>
+            <td class="text-center">
+              <span class="badge rounded-pill px-3 py-2"
+                    [ngClass]="{
+                      'bg-secondary': tender.status === 'DRAFT',
+                      'bg-success': tender.status === 'OPEN',
+                      'bg-danger': tender.status === 'CLOSED'
+                    }">
+                {{ tender.status }}
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
