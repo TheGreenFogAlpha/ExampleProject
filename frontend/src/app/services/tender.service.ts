@@ -8,7 +8,7 @@ import { Tender } from '../models/tender.model';
 })
 export class TenderService {
   private http = inject(HttpClient);
-  private readonly apiUrl = '/api/tenders';
+  private readonly apiUrl = 'http://localhost:8081/api/tenders';
 
   getTenders(): Observable<Tender[]> {
     return this.http.get<Tender[]>(this.apiUrl);

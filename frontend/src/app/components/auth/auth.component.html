@@ -1,0 +1,63 @@
+<div class="row justify-content-center mt-4">
+  <div class="col-md-6 col-lg-5">
+    <div class="card border-0 shadow-sm rounded-3">
+      <div class="card-body p-4">
+        <h4 class="fw-bold text-dark mb-1">
+          {{ isLoginMode ? 'Accedi a TenderFlow' : 'Crea un Account' }}
+        </h4>
+        <p class="text-muted small mb-4">
+          {{ isLoginMode ? 'Inserisci le tue credenziali per continuare' : 'Registrati e scegli il tuo ruolo operativo' }}
+        </p>
+
+        <!-- Messaggio di Errore -->
+        <div *ngIf="errorMessage" class="alert alert-danger py-2 small">
+          {{ errorMessage }}
+        </div>
+
+        <form (ngSubmit)="onSubmit()" #authForm="ngForm">
+          <!-- Nome Completo (solo in fase di registrazione) -->
+          <div *ngIf="!isLoginMode" class="mb-3">
+            <label for="fullName" class="form-label small fw-semibold text-secondary">Nome Completo / Azienda *</label>
+            <input type="text" id="fullName" class="form-control" [(ngModel)]="formData.fullName" name="fullName" placeholder="Es. Mario Rossi Srl" required />
+          </div>
+
+          <!-- Email -->
+          <div class="mb-3">
+            <label for="email" class="form-label small fw-semibold text-secondary">Email *</label>
+            <input type="email" id="email" class="form-control" [(ngModel)]="formData.email" name="email" placeholder="nome@azienda.it" required />
+          </div>
+
+          <!-- Password -->
+          <div class="mb-3">
+            <label for="password" class="form-label small fw-semibold text-secondary">Password *</label>
+            <input type="password" id="password" class="form-control" [(ngModel)]="formData.password" name="password" placeholder="••••••••" required />
+          </div>
+
+          <!-- Scelta Ruolo (solo in fase di registrazione) -->
+          <div *ngIf="!isLoginMode" class="mb-4">
+            <label for="role" class="form-label small fw-semibold text-secondary">Ruolo Piattaforma *</label>
+            <select id="role" class="form-select" [(ngModel)]="formData.role" name="role" required>
+              <option value="BUYER">BUYER (Pubblica e gestisce gare d'appalto)</option>
+              <option value="SUPPLIER">SUPPLIER (Partecipa e invia offerte)</option>
+            </select>
+          </div>
+
+          <button type="submit" class="btn btn-primary w-100 fw-semibold py-2" [disabled]="!authForm.form.valid || isLoading">
+            {{ isLoading ? 'Attendere...' : (isLoginMode ? 'Accedi' : 'Registrati e Accedi') }}
+          </button>
+        </form>
+
+        <hr class="my-4" />
+
+        <div class="text-center small">
+          <span class="text-muted">
+            {{ isLoginMode ? 'Non hai ancora un account?' : 'Hai già un account?' }}
+          </span>
+          <button type="button" class="btn btn-link btn-sm fw-semibold text-decoration-none p-0 ms-1" (click)="toggleMode()">
+            {{ isLoginMode ? 'Registrati ora' : 'Accedi' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

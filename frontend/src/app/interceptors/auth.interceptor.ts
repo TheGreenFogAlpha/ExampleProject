@@ -1,13 +1,12 @@
 import { HttpInterceptorFn } from '@angular/common/http';
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
-  // Token di test per l'ambiente di sviluppo locale (con ruolo BUYER)
-  const devToken = localStorage.getItem('jwt_token') || 'YOUR_DEV_BUYER_JWT_TOKEN';
+  const token = localStorage.getItem('jwt_token');
 
-  if (devToken && req.method !== 'GET') {
+  if (token && !req.url.includes('/api/auth')) {
     const authReq = req.clone({
       setHeaders: {
-        Authorization: `Bearer ${devToken}`
+        Authorization: `Bearer ${token}`
       }
     });
     return next(authReq);

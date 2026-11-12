@@ -1,4 +1,4 @@
-package com.tenderflow.resource;
+package com.tenderflow.controller;
 
 import com.tenderflow.entity.User;
 import io.quarkus.elytron.security.common.BcryptUtil;

@@ -1,0 +1,43 @@
+<div class="bg-light min-vh-100 py-4">
+  <div class="container" style="max-width: 900px;">
+    <!-- Header Principale -->
+    <header class="d-flex align-items-center justify-content-between mb-4 pb-3 border-bottom">
+      <div>
+        <h2 class="fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+          <span class="badge bg-primary rounded-3 fs-6 px-3 py-2">TF</span>
+          TenderFlow Enterprise
+        </h2>
+        <p class="text-muted small mb-0">Gestione Gare d'Appalto & Integrazione Backend Quarkus</p>
+      </div>
+
+      <!-- Barra Utente Loggato / Pulsante Esci -->
+      <div *ngIf="authService.isAuthenticated()" class="d-flex align-items-center gap-3">
+        <div class="text-end small">
+          <div class="fw-bold text-dark">{{ authService.currentUser()?.fullName }}</div>
+          <span class="badge" [ngClass]="authService.userRole() === 'BUYER' ? 'bg-primary' : 'bg-info text-dark'">
+            {{ authService.userRole() }}
+          </span>
+        </div>
+        <button class="btn btn-outline-danger btn-sm fw-semibold" (click)="logout()">
+          Esci
+        </button>
+      </div>
+    </header>
+
+    <!-- Se NON sei loggato: mostra Login / Registrazione -->
+    <app-auth *ngIf="!authService.isAuthenticated()"></app-auth>
+
+    <!-- Se SEI loggato: mostra l'app in base al ruolo -->
+    <div *ngIf="authService.isAuthenticated()" class="row g-4">
+      <!-- Solo il BUYER vede il form per creare nuove gare -->
+      <div class="col-12" *ngIf="authService.userRole() === 'BUYER'">
+        <app-tender-form></app-tender-form>
+      </div>
+
+      <!-- Sia BUYER che SUPPLIER vedono l'elenco gare -->
+      <div class="col-12">
+        <app-tender-list></app-tender-list>
+      </div>
+    </div>
+  </div>
+</div>
